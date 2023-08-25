@@ -3,94 +3,61 @@
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
 #include "CTBot.h"
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-#define RXD2 16
-#define TXD2 17
-HardwareSerial neogps(1);
-
+#define W 128
+#define H 64
+#define R -1
+#define A 0x3C
+Adafruit_SSD1306 d(W,H,&Wire,R);
+#define X 16
+#define Y 17
+HardwareSerial g(1);
 TinyGPSPlus gps;
-CTBot mybot;
-
-const char* ssid = "koneksi tidak tersedia";
-const char* pass = "mengalahkan";
-const char* token = "6494604045:AAGZ5OiLjcUYSFx5nthfn-juYsqdLL90Q90";
-const int chatId = 1168266140;
-int led = 2;
-
-void setup() {
+CTBot b;
+const char* s="koneksi tidak tersedia";
+const char* p="mengalahkan";
+const char* t="6494604045:AAGZ5OiLjcUYSFx5nthfn-juYsqdLL90Q90";
+const int c=1168266140;
+int l=2;
+void setup(){
   Serial.begin(115200);
-  neogps.begin(9600, SERIAL_8N1, RXD2, TXD2);
-
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    while (true);
-  }
-
-  display.clearDisplay();
-  display.display();
-  delay(2000);
-
-  pinMode(led, OUTPUT);
-  Serial.println("Starting telegram bot");
-  mybot.wifiConnect(ssid, pass);
-  mybot.setTelegramToken(token);
-
-  Serial.println(mybot.testConnection() ? "Connection successful" : "Connection failed");
+  g.begin(9600, SERIAL_8N1, X, Y);
+  if (!d.begin(SSD1306_SWITCHCAPVCC, A)) while(true);
+  d.clearDisplay();d.display();delay(2000);
+  pinMode(l,OUTPUT);Serial.println("Starting telegram bot");
+  b.wifiConnect(s,p);b.setTelegramToken(t);
+  Serial.println(b.testConnection()?"Connection successful":"Connection failed");
 }
-
-void loop() {
-  boolean newData = false;
-  for (unsigned long start = millis(); millis() - start < 1000;) {
-    while (neogps.available()) {
-      if (gps.encode(neogps.read())) {
-        newData = true;
-      }
+void loop(){
+  boolean n=false;
+  for(unsigned long s=millis();millis()-s<1000;){
+    while(g.available()){
+      if(gps.encode(g.read()))n=true;
     }
   }
-
-  if (newData) {
-    Serial.println(gps.satellites.value());
+  if(n){
+    Serial.println(gps.satellites.value());TBMessage m;
     print_speed();
-  } else {
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 0);
-    display.setTextSize(3);
-    display.print("No Data");
-    display.display();
+  }else{d.clearDisplay();d.setTextColor(SSD1306_WHITE);d.setCursor(0,0);d.setTextSize(3);d.print("No Data");d.display();}
+  TBMessage m;
+  if(b.getNewMessage(m)){
+    Serial.println("Received message: "+m.text);
+    String ms=m.text;
+    if(ms=="on"||ms=="off"){
+      digitalWrite(l,ms=="on"?HIGH:LOW);
+      b.sendMessage(c,"LED "+ms.capitalize());
+    }else if(ms=="LOCATION")sendLocation();
   }
-
-  TBMessage msg;
-  if (mybot.getNewMessage(msg)) {
-    Serial.println("Received message: " + msg.text);
-    if (msg.text == "on" || msg.text == "off") {
-      digitalWrite(led, msg.text == "on" ? HIGH : LOW);
-      mybot.sendMessage(chatId, "LED " + msg.text.capitalize());
-    } else if (msg.text == "LOCATION") {
-      sendLocation();
-    }
-  }
-
-  while (neogps.available() > 0) {
-    if (gps.encode(neogps.read())) {
-      if (gps.location.isValid()) {
-        Serial.print("Latitude: ");
-        Serial.println(gps.location.lat(), 6);
-        Serial.print("Longitude: ");
-        Serial.println(gps.location.lng(), 6);
+  while(g.available()){
+    if(gps.encode(g.read())){
+      if(gps.location.isValid()){
+        Serial.print("Latitude: ");Serial.println(gps.location.lat(),6);
+        Serial.print("Longitude: ");Serial.println(gps.location.lng(),6);
       }
     }
   }
 }
-
-void print_speed() {
-  display.clearDisplay();
+void print_speed(){
+display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
        
   if (gps.location.isValid() == 1)
@@ -137,18 +104,13 @@ void print_speed() {
     display.print("No Data");
     display.display();
 }
+
 }
-
-void sendLocation() {
-  if (gps.location.isValid()) {
-    String lat = String(gps.location.lat(), 6);
-    String lon = String(gps.location.lng(), 6);
-
-    String message = "https://maps.google.com/?q=" + lat + "," + lon;
-    mybot.sendMessage(chatId, message);
-    Serial.println("Location sent to Telegram");
-  } else {
-    mybot.sendMessage(chatId, "Unable to fetch location.");
-    Serial.println("Unable to fetch location");
-  }
+void sendLocation(){
+  if(gps.location.isValid()){
+    String la=String(gps.location.lat(),6);
+    String lo=String(gps.location.lng(),6);
+    String m="https://maps.google.com/?q="+la+","+lo;
+    b.sendMessage(c,m);Serial.println("Location sent to Telegram");
+  }else{b.sendMessage(c,"Unable to fetch location.");Serial.println("Unable to fetch location");}
 }
