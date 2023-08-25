@@ -20,7 +20,7 @@ CTBot mybot;
 const char* ssid = "koneksi tidak tersedia";
 const char* pass = "mengalahkan";
 const char* token = "6494604045:AAGZ5OiLjcUYSFx5nthfn-juYsqdLL90Q90";
-const int chatId = 1168266140;  // Ganti dengan ID chat Anda
+const int chatId = 1168266140;  // Your chat ID
 int led = 2;
 
 void setup() {
@@ -29,22 +29,22 @@ void setup() {
 
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
-    for (;;) ;
+    while (true);
   }
 
   display.clearDisplay();
   display.display();
   delay(2000);
-  
+
   pinMode(led, OUTPUT);
-  Serial.println("Memulai telegram bot");
+  Serial.println("Starting telegram bot");
   mybot.wifiConnect(ssid, pass);
   mybot.setTelegramToken(token);
 
   if (mybot.testConnection())
-    Serial.println("Koneksi berhasil");
+    Serial.println("Connection successful");
   else
-    Serial.println("Koneksi Gagal ");
+    Serial.println("Connection failed");
 }
 
 void loop() {
@@ -71,19 +71,19 @@ void loop() {
 
   TBMessage msg;
   if (mybot.getNewMessage(msg)) {
-    Serial.println("Pesan masuk : " + msg.text);
-    String pesan = msg.text;
-    if (pesan == "on") {
+    Serial.println("Received message: " + msg.text);
+    String message = msg.text;
+    if (message == "on") {
       digitalWrite(led, HIGH);
-      mybot.sendMessage(chatId, "Led Menyala");
-    } else if (pesan == "off") {
+      mybot.sendMessage(chatId, "LED On");
+    } else if (message == "off") {
       digitalWrite(led, LOW);
-      mybot.sendMessage(chatId, "Led Mati");
-    } else if (pesan == "LOKASI") {
+      mybot.sendMessage(chatId, "LED Off");
+    } else if (message == "LOCATION") {
       sendLocation();
     }
   }
-  
+
   while (neogps.available() > 0) {
     if (gps.encode(neogps.read())) {
       if (gps.location.isValid()) {
@@ -143,7 +143,8 @@ void print_speed() {
     display.setTextSize(3);
     display.print("No Data");
     display.display();
-}}
+}
+}
 
 void sendLocation() {
   if (gps.location.isValid()) {
@@ -152,9 +153,9 @@ void sendLocation() {
 
     String message = "https://maps.google.com/?q=" + latitude + "," + longitude;
     mybot.sendMessage(chatId, message);
-    Serial.println("Lokasi terkirim ke Telegram");
+    Serial.println("Location sent to Telegram");
   } else {
-    mybot.sendMessage(chatId, "Tidak dapat mengambil lokasi saat ini.");
-    Serial.println("Tidak dapat mengambil lokasi");
+    mybot.sendMessage(chatId, "Unable to fetch location.");
+    Serial.println("Unable to fetch location");
   }
 }
